@@ -5,10 +5,12 @@ Home Assistant's built-in Daikin integration from **2026.10.1**, unchanged excep
 
 ## Why
 
-BRP084 Wi-Fi adapters sometimes take longer than 5 seconds to answer. pydaikin 2.19.1 gave them a hard
-5-second timeout with no retry, so one slow reply made Home Assistant mark the unit unavailable until the
-next poll two minutes later. The patched pydaikin waits up to 15 seconds and retries up to 3 times on
-timeouts and connection errors, and its errors name the device and say when the cause was a timeout.
+BRP084 Wi-Fi adapters sometimes take longer than 5 seconds to answer, or stop answering for a minute or
+more while staying on Wi-Fi. pydaikin 2.19.1 gave them a hard 5-second timeout with no retry, so one slow
+reply made Home Assistant mark the unit unavailable until the next poll two minutes later. The patched
+pydaikin makes up to 10 attempts of 10 seconds each on timeouts and connection errors, about 110 seconds
+in all, which fits inside Home Assistant's 120-second polling interval. Its errors name the device and say
+when the cause was a timeout.
 
 ## Install (HACS)
 
