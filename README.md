@@ -13,6 +13,11 @@ connection error is followed by a 1–2 second pause, so a failure takes about 1
 fits inside Home Assistant's 120-second polling interval. Its errors name the device and say when the
 cause was a timeout.
 
+When a unit comes back after an outage, its first reply can be missing part of the status. pydaikin
+2.19.1 crashed on that with a `KeyError`, which made Home Assistant give up on setting the unit up
+until it was reloaded. The patched pydaikin reports it as a normal Daikin error, so Home Assistant keeps
+retrying.
+
 ## Install (HACS)
 
 1. HACS → ⋮ → Custom repositories → add this repository as an **Integration**.
