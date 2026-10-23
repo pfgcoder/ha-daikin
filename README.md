@@ -9,9 +9,9 @@ BRP084 Wi-Fi adapters sometimes take longer than 5 seconds to answer, or stop an
 more. Upstream pydaikin, up to at least 2.21.0, gives them a hard 5-second timeout with no retry, so one
 slow reply makes Home Assistant mark the unit unavailable until the next poll two minutes later. The
 patched pydaikin keeps retrying timeouts and connection errors for about 100 seconds. Each attempt gets
-10 seconds, and a connection error is followed by a 1–2 second pause, so a failure takes about 110
-seconds at most, which fits inside Home Assistant's 120-second polling interval. Its errors name the
-device and say when the cause was a timeout.
+10 seconds. After a timeout it waits 2, 4, 8 and then 16 seconds before trying again, so a slow adapter
+isn't flooded with requests, and after a connection error it waits 1–2 seconds. It also sends each
+adapter one request at a time. Its errors name the device and say when the cause was a timeout.
 
 ## Install (HACS)
 
