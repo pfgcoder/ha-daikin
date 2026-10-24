@@ -24,8 +24,12 @@ from homeassistant.util.ssl import client_context_no_verify
 
 from .const import KEY_MAC, TIMEOUT_SEC
 from .coordinator import DaikinConfigEntry, DaikinCoordinator
+from .tuning import apply_brp084_tuning
 
 _LOGGER = logging.getLogger(__name__)
+
+# Swap pydaikin's BRP084 retry timing for ours once, when the integration loads.
+apply_brp084_tuning()
 
 
 PLATFORMS = [Platform.CLIMATE, Platform.SENSOR, Platform.SWITCH]
