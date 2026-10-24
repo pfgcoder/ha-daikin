@@ -3,7 +3,7 @@
 import asyncio
 import logging
 
-from aiohttp import ClientConnectionError
+from aiohttp import ClientError
 from pydaikin.daikin_base import Appliance
 from pydaikin.exceptions import DaikinException
 from pydaikin.factory import DaikinFactory
@@ -54,8 +54,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: DaikinConfigEntry) -> bo
     except TimeoutError as err:
         _LOGGER.debug("Connection to %s timed out in %s seconds", host, TIMEOUT_SEC)
         raise ConfigEntryNotReady from err
-    except ClientConnectionError as err:
-        _LOGGER.debug("ClientConnectionError to %s", host)
+    except ClientError as err:
+        # Any HTTP error during setup, such as 429 Too Many Requests from a
+        # struggling adapter, is temporary, so let Home Assistant retry.
+        _LOGGER.debug("ClientError from %s: %s", host, err)
         raise ConfigEntryNotReady from err
     except DaikinException as err:
         # pydaikin has no subclass hierarchy for transient vs permanent errors.
