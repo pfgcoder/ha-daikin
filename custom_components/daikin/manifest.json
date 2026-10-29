@@ -9,8 +9,8 @@
   "issue_tracker": "https://github.com/pfgcoder/ha-daikin/issues",
   "loggers": ["pydaikin"],
   "requirements": [
-    "pydaikin @ https://github.com/pfgcoder/pydaikin/archive/f7a2a4b563b0c2a347be9c35e1e241eb298309eb.zip"
+    "pydaikin @ https://github.com/pfgcoder/pydaikin/archive/4bdc68e6197d851cb085dc6b56cb42fe0a89088f.zip"
   ],
-  "version": "2026.10.1+pfg.8",
+  "version": "2026.10.1+pfg.9",
   "zeroconf": ["_dkapi._tcp.local."]
 }

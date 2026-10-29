@@ -1,32 +1,23 @@
 """Retry tuning for BRP084 adapters, applied on top of pydaikin.
 
 pydaikin tries a BRP084 request 3 times with a 15s timeout. Some adapters go
-silent for a minute or more while staying on Wi-Fi, so keep trying for 100s
-instead: 10s per attempt, backing off 2, 4, 8 then 16s after a timeout so a
-slow adapter isn't flooded, and 1-2s after other failures. A request's first
-retry is logged as a warning, so the log shows how often retries happen.
+silent for a minute or more while staying on Wi-Fi, so keep trying for about
+100s instead: 10s per attempt, backing off 2, 4, 8 then 16s after each failure
+so a struggling adapter isn't flooded. No attempt starts after 100s, so a
+request gives up within 110s. A request's first retry is logged as a warning,
+so the log shows how often retries happen.
 """
 
 import logging
 
 from aiohttp import ClientTimeout
 from pydaikin.daikin_brp084 import DaikinBRP084
-from tenacity import RetryCallState, stop_after_delay, wait_exponential, wait_random
+from tenacity import RetryCallState, stop_before_delay, wait_exponential
 
 _LOGGER = logging.getLogger(__name__)
 
 HTTP_TIMEOUT = ClientTimeout(total=10)
 RETRY_SECONDS = 100
-
-_WAIT_AFTER_TIMEOUT = wait_exponential(multiplier=2, max=16)
-_WAIT_AFTER_ERROR = wait_random(min=1, max=2)
-
-
-def _wait_before_retry(retry_state: RetryCallState) -> float:
-    """Back off 2, 4, 8 then 16s after a timeout, and 1-2s after other failures."""
-    if isinstance(retry_state.outcome.exception(), TimeoutError):
-        return _WAIT_AFTER_TIMEOUT(retry_state)
-    return _WAIT_AFTER_ERROR(retry_state)
 
 
 def _log_retry(retry_state: RetryCallState) -> None:
@@ -53,7 +44,9 @@ def apply_brp084_tuning() -> None:
     errors are retried and reraise stay as pydaikin has them. If pydaikin no
     longer retries with tenacity, leave it alone.
     """
-    retry_with = getattr(DaikinBRP084._get_resource, "retry_with", None)  # noqa: SLF001
+    # BRP084's own request method, not the one it inherits for older adapters.
+    request = vars(DaikinBRP084).get("_do_get_resource")
+    retry_with = getattr(request, "retry_with", None)
     if retry_with is None:
         _LOGGER.warning(
             "pydaikin's BRP084 requests no longer use tenacity, so the retry "
@@ -61,8 +54,8 @@ def apply_brp084_tuning() -> None:
         )
         return
     DaikinBRP084.HTTP_TIMEOUT = HTTP_TIMEOUT
-    DaikinBRP084._get_resource = retry_with(  # noqa: SLF001
-        stop=stop_after_delay(RETRY_SECONDS),
-        wait=_wait_before_retry,
+    DaikinBRP084._do_get_resource = retry_with(  # noqa: SLF001
+        stop=stop_before_delay(RETRY_SECONDS),
+        wait=wait_exponential(multiplier=2, max=16),
         before_sleep=_log_retry,
     )
