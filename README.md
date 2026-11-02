@@ -13,6 +13,9 @@ adapters:
      Assistant for at least a second at every setup.
    - Smaller BRP084 fixes: a failed command names the device, a reply cut off part-way through is retried,
      and commands are packaged correctly whatever order their settings come in.
+   - When a unit's energy counters jump (its clock changes, or it's read in the middle of its midnight
+     rollover), the power estimate starts again instead of logging "Impossible energy consumption measure"
+     every two minutes for six hours.
 2. **Retry tuning** (`custom_components/daikin/tuning.py`). Some adapters stop answering for a minute or
    more while staying on Wi-Fi, so the integration keeps trying for about 100 seconds instead. Each attempt
    gets 10 seconds. After a failure it waits 2, 4, 8 and then 16 seconds before trying again, so a
