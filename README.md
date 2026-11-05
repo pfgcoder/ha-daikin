@@ -3,8 +3,8 @@
 Home Assistant's built-in Daikin integration from **2026.11.0**, with three changes for BRP084 Wi-Fi
 adapters:
 
-1. **A pydaikin build with fixes meant for upstream.** It's upstream pydaikin 2.21.0 plus these changes
-   ([`ha-build-2.21`](https://github.com/pfgcoder/pydaikin/tree/ha-build-2.21)):
+1. **A pydaikin build with fixes meant for upstream.** It's upstream pydaikin 2.22.1 plus these changes
+   ([`ha-build-2.22`](https://github.com/pfgcoder/pydaikin/tree/ha-build-2.22)):
    - BRP084 requests are retried (3 attempts of 15 seconds) instead of failing on one 5-second timeout, and
      each adapter gets one request at a time. A request keeps its turn while it retries, so an older command
      can't land after a newer one and undo it. Errors name the device and say when the cause was a timeout.
@@ -16,6 +16,11 @@ adapters:
    - When a unit's energy counters jump (its clock changes, or it's read in the middle of its midnight
      rollover), the power estimate starts again instead of logging "Impossible energy consumption measure"
      every two minutes for six hours.
+   - Changing the setpoint, fan or swing of a BRP084 unit that's off is no longer silently dropped. It's
+     written for the mode the unit runs in when it's turned back on, and the unit stays off.
+   - Fixes for other adapter types: they retry a slow or cut-off reply too, a failed status update reports
+     the real error, logs and errors leave out passwords and keys, BRP072C uses its own random uuid when
+     none is given, and discovery returns the address it found and no longer sets the wrong HTTP port.
 2. **Retry tuning** (`custom_components/daikin/tuning.py`). Some adapters stop answering for a minute or
    more while staying on Wi-Fi, so the integration keeps trying for about 100 seconds instead. Each attempt
    gets 10 seconds. After a failure it waits 2, 4, 8 and then 16 seconds before trying again, so a
@@ -39,7 +44,11 @@ Because it uses the same domain (`daikin`), it replaces the built-in integration
 Daikin entries, entities and automations are kept. Home Assistant logs a "custom integration not tested"
 warning for `daikin`, which is expected.
 
-Home Assistant reinstalls the pinned pydaikin from GitHub on every start, so startup needs internet access.
+The requirement in `manifest.json` names the pinned pydaikin's exact version after the `#`, so Home
+Assistant can tell it's already installed and doesn't download it again at every start. It downloads it
+from GitHub only when it's missing or the pin changes, such as the first start after an update or after
+the container is recreated, so those starts need internet access. Keep that version the same as the
+pinned build's `pyproject.toml`; if they differ, Home Assistant reinstalls it at every start.
 
 ## Remove
 
@@ -49,7 +58,7 @@ Remove it in the Marketplace and restart. The built-in integration takes over ag
 
 This is a copy of 2026.11.0's integration. Before upgrading Home Assistant, re-copy the integration from
 the new version and reapply the tuning and the setup change. 2026.11.0's built-in integration pins
-pydaikin 2.22.1; this one still uses the 2.21.0-based build above. BRP084 adapters don't support
+pydaikin 2.22.1; this one uses the 2.22.1-based build above. BRP084 adapters don't support
 2026.11's new demand-control action, so it reports "not supported" for them either way.
 
 Once a Home Assistant release includes a pydaikin with these fixes and the setup change, this no longer
