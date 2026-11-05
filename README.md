@@ -1,6 +1,6 @@
 # tuned-daikin
 
-Home Assistant's built-in Daikin integration from **2026.10.1**, with three changes for BRP084 Wi-Fi
+Home Assistant's built-in Daikin integration from **2026.11.0**, with three changes for BRP084 Wi-Fi
 adapters:
 
 1. **A pydaikin build with fixes meant for upstream.** It's upstream pydaikin 2.21.0 plus these changes
@@ -27,9 +27,12 @@ adapters:
    retrying. The built-in integration only does that for connection errors, so a 429 left the unit failed
    until it was reloaded.
 
-## Install (HACS)
+## Install (Marketplace)
 
-1. HACS → ⋮ → Custom repositories → add this repository as an **Integration**.
+Needs Home Assistant 2026.11 or later.
+
+1. Settings → Marketplace → **Add from link**, and enter this repository's URL. Custom repositories need
+   a GitHub connection, which the Marketplace asks for the first time.
 2. Download it and restart Home Assistant.
 
 Because it uses the same domain (`daikin`), it replaces the built-in integration automatically. Existing
@@ -40,13 +43,14 @@ Home Assistant reinstalls the pinned pydaikin from GitHub on every start, so sta
 
 ## Remove
 
-Remove it in HACS and restart. The built-in integration takes over again with the same entities.
+Remove it in the Marketplace and restart. The built-in integration takes over again with the same entities.
 
 ## Keeping in step with Home Assistant
 
-This is a copy of 2026.10.1's integration. Before upgrading Home Assistant, re-copy the integration from
-the new version and reapply the tuning and the setup change. 2026.11 adds demand-control services and
-pins pydaikin 2.20.0.
+This is a copy of 2026.11.0's integration. Before upgrading Home Assistant, re-copy the integration from
+the new version and reapply the tuning and the setup change. 2026.11.0's built-in integration pins
+pydaikin 2.22.1; this one still uses the 2.21.0-based build above. BRP084 adapters don't support
+2026.11's new demand-control action, so it reports "not supported" for them either way.
 
 Once a Home Assistant release includes a pydaikin with these fixes and the setup change, this no longer
 needs to replace the built-in integration. It can shrink to a separate add-on that only applies the tuning.
