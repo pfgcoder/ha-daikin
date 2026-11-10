@@ -28,6 +28,21 @@ class DaikinModeSwitchEntityDescription(SwitchEntityDescription):
     set_fn: Callable[[DaikinBRP084, str], Awaitable[None]]
 
 
+def _swings_vertically(device: DaikinBRP084) -> bool:
+    """Return whether the louver swings up and down."""
+    return device.represent("f_dir")[1] in ("vertical", "3d")
+
+
+async def _set_vertical_swing(device: DaikinBRP084, state: str) -> None:
+    """Turn up-and-down swing on or off, leaving side-to-side swing as it is."""
+    horizontal = device.represent("f_dir")[1] in ("horizontal", "3d")
+    if state == "on":
+        f_dir = "3d" if horizontal else "vertical"
+    else:
+        f_dir = "horizontal" if horizontal else "off"
+    await device.set({"f_dir": f_dir})
+
+
 # pydaikin turns Powerful off when Comfort or Econo is turned on, and the other
 # way round, as the unit allows only one side at a time. The unit also ends
 # Powerful by itself after about 20 minutes.
@@ -52,6 +67,15 @@ MODE_SWITCHES: tuple[DaikinModeSwitchEntityDescription, ...] = (
         supported_fn=lambda device: device.support_powerful_mode,
         is_on_fn=lambda device: device.powerful_mode == "on",
         set_fn=lambda device, state: device.set_powerful_mode(state),
+    ),
+    # The remote's swing button: up-and-down swing on or off. The climate
+    # entity's swing mode does the same, but takes a menu.
+    DaikinModeSwitchEntityDescription(
+        key="swing",
+        translation_key="swing",
+        supported_fn=lambda device: device.support_swing_mode,
+        is_on_fn=_swings_vertically,
+        set_fn=_set_vertical_swing,
     ),
 )
 

@@ -36,12 +36,15 @@ adapters:
    429 Too Many Requests from a struggling adapter leaves the unit "not ready yet", so Home Assistant keeps
    retrying. The built-in integration only does that for connection errors, so a 429 left the unit failed
    until it was reloaded.
-4. **Comfort, Econo and Powerful switches** (`custom_components/daikin/switch.py`). pydaikin can read and
+4. **Comfort, Econo, Powerful and Swing switches** (`custom_components/daikin/switch.py`). pydaikin can read and
    set these modes on BRP084 adapters, but the built-in integration doesn't show them. Each one appears as
    a switch on units that report it. The unit doesn't allow Powerful together with Comfort or Econo, so
    turning one side on turns the other off, as the remote does. The unit also ends Powerful by itself
    after about 20 minutes. Like the remote, Comfort stops the swing and moves the louver to its comfort
    position (down when heating, up when cooling), and turning it off leaves the louver in the middle.
+   A **Swing** switch does what the remote's swing button does: it starts or stops the up-and-down swing,
+   as the climate entity's swing mode does from a menu. Starting the swing ends Comfort, as on the remote.
+   HA shows that within one poll, about 2 minutes.
 
 ## Install (Marketplace)
 

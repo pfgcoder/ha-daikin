@@ -24,6 +24,9 @@
       "streamer": {
         "default": "mdi:air-filter"
       },
+      "swing": {
+        "default": "mdi:arrow-oscillating"
+      },
       "toggle": {
         "default": "mdi:power"
       },

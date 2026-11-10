@@ -62,6 +62,9 @@
       "powerful": {
         "name": "Powerful"
       },
+      "swing": {
+        "name": "Swing"
+      },
       "toggle": {
         "name": "Power"
       }
