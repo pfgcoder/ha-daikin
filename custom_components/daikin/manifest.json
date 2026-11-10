@@ -13,6 +13,6 @@
   "requirements": [
     "https://github.com/pfgcoder/pydaikin/archive/620207491172dbe7e38536261522ac54fa0eeb99.zip#pydaikin==2.22.1+pfg.5"
   ],
-  "version": "2026.11.0+pfg.17",
+  "version": "2026.11.0+pfg.18",
   "zeroconf": ["_dkapi._tcp.local."]
 }

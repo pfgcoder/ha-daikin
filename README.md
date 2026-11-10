@@ -43,9 +43,16 @@ adapters:
 4. **Comfort, Econo and Powerful on the climate card, plus switches** (`custom_components/daikin/climate.py`,
    `switch.py`). pydaikin can read and set these modes on BRP084 adapters, but the built-in integration
    doesn't show them.
-   - On the climate card, the swing menu offers Off, Swing and Comfort, since the unit allows only one of
-     them at a time. A unit that also swings side to side keeps its Vertical, Horizontal and 3D options.
-     The preset menu offers Eco (Econo) and Boost (Powerful).
+   - On the climate card, the fan menu offers Auto, Quiet, Comfort and Boost (Powerful). Each of them sets
+     the fan, and the unit allows only one at a time: Comfort puts the fan on Auto, and Powerful runs it
+     flat out. Google Assistant shows only a thermostat's mode, setpoint and fan speed, so this is also how
+     Google Home reaches Comfort and Powerful. The numbered fan speeds are left out; one set from the
+     remote shows as its number.
+   - Picking Auto or Quiet first ends Comfort or Powerful, as the unit won't change the fan while either
+     is on (the remote's fan button does nothing then). Powerful keeps the fan speed it was set to and goes
+     back to it when it ends.
+   - The swing menu offers Off and Swing. A unit that also swings side to side keeps its Vertical,
+     Horizontal and 3D options. The preset menu offers Eco (Econo), which doesn't change the fan.
    - The card's Heating, Cooling or Idle comes from the indoor unit itself. The built-in integration uses
      the compressor, which belongs to the outdoor unit, so on a multi-split every indoor unit on it showed
      "Heating" while any one of them still needed heat.
@@ -55,7 +62,7 @@ adapters:
      on turns the other off. The unit also ends Powerful by itself after about 20 minutes.
    - Comfort stops the swing and moves the louver to its comfort position (down when heating, up when
      cooling), and turning it off leaves the louver in the middle. Starting the swing ends Comfort; the
-     Comfort switch shows that within one poll, about 2 minutes.
+     fan menu and the Comfort switch show that within one poll, about 2 minutes.
 
 ## Install (Marketplace)
 
