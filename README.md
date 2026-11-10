@@ -21,6 +21,8 @@ adapters:
    - A BRP084 unit whose louvers only swing up and down shows swing as "Vertical" while it swings. Before,
      it always showed "Off", because the unit has no side-to-side setting and reading it failed. This is
      upstream pull request [#178](https://github.com/fredrike/pydaikin/pull/178).
+   - Turning Comfort on or off on a BRP084 unit works. Before, the unit ignored it, because it only acts
+     on Comfort when the louver is set at the same time, as the remote does.
    - Fixes for other adapter types: they retry a slow or cut-off reply too, a failed status update reports
      the real error, logs and errors leave out passwords and keys, BRP072C uses its own random uuid when
      none is given, and discovery returns the address it found and no longer sets the wrong HTTP port.
@@ -38,7 +40,8 @@ adapters:
    set these modes on BRP084 adapters, but the built-in integration doesn't show them. Each one appears as
    a switch on units that report it. The unit doesn't allow Powerful together with Comfort or Econo, so
    turning one side on turns the other off, as the remote does. The unit also ends Powerful by itself
-   after about 20 minutes.
+   after about 20 minutes. Like the remote, Comfort stops the swing and moves the louver to its comfort
+   position (down when heating, up when cooling), and turning it off leaves the louver in the middle.
 
 ## Install (Marketplace)
 
