@@ -12,6 +12,15 @@
       }
     },
     "switch": {
+      "comfort": {
+        "default": "mdi:weather-windy"
+      },
+      "econo": {
+        "default": "mdi:leaf"
+      },
+      "powerful": {
+        "default": "mdi:rocket-launch"
+      },
       "streamer": {
         "default": "mdi:air-filter"
       },

@@ -1,8 +1,12 @@
 """Support for Daikin AirBase zones."""
 
+from collections.abc import Awaitable, Callable
+from dataclasses import dataclass
 from typing import Any, override
 
-from homeassistant.components.switch import SwitchEntity
+from pydaikin.daikin_brp084 import DaikinBRP084
+
+from homeassistant.components.switch import SwitchEntity, SwitchEntityDescription
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
@@ -13,6 +17,43 @@ from .entity import DaikinEntity
 DAIKIN_ATTR_ADVANCED = "adv"
 DAIKIN_ATTR_STREAMER = "streamer"
 DAIKIN_ATTR_MODE = "mode"
+
+
+@dataclass(frozen=True, kw_only=True)
+class DaikinModeSwitchEntityDescription(SwitchEntityDescription):
+    """Describes an on/off mode of a BRP084 unit, such as Comfort."""
+
+    supported_fn: Callable[[DaikinBRP084], bool]
+    is_on_fn: Callable[[DaikinBRP084], bool]
+    set_fn: Callable[[DaikinBRP084, str], Awaitable[None]]
+
+
+# pydaikin turns Powerful off when Comfort or Econo is turned on, and the other
+# way round, as the unit allows only one side at a time. The unit also ends
+# Powerful by itself after about 20 minutes.
+MODE_SWITCHES: tuple[DaikinModeSwitchEntityDescription, ...] = (
+    DaikinModeSwitchEntityDescription(
+        key="comfort",
+        translation_key="comfort",
+        supported_fn=lambda device: device.support_comfort_mode,
+        is_on_fn=lambda device: device.comfort_mode == "on",
+        set_fn=lambda device, state: device.set_comfort_mode(state),
+    ),
+    DaikinModeSwitchEntityDescription(
+        key="econo",
+        translation_key="econo",
+        supported_fn=lambda device: device.support_econo_mode,
+        is_on_fn=lambda device: device.econo_mode == "on",
+        set_fn=lambda device, state: device.set_econo_mode(state),
+    ),
+    DaikinModeSwitchEntityDescription(
+        key="powerful",
+        translation_key="powerful",
+        supported_fn=lambda device: device.support_powerful_mode,
+        is_on_fn=lambda device: device.powerful_mode == "on",
+        set_fn=lambda device, state: device.set_powerful_mode(state),
+    ),
+)
 
 
 async def async_setup_entry(
@@ -34,6 +75,13 @@ async def async_setup_entry(
         # device supports the streamer, so assume so if it does support
         # advanced modes.
         switches.append(DaikinStreamerSwitch(daikin_api))
+    if isinstance(daikin_api.device, DaikinBRP084):
+        # Only the modes this unit reported in its first status update.
+        switches.extend(
+            DaikinModeSwitch(daikin_api, description)
+            for description in MODE_SWITCHES
+            if description.supported_fn(daikin_api.device)
+        )
     switches.append(DaikinToggleSwitch(daikin_api))
     async_add_entities(switches)
 
@@ -101,6 +149,41 @@ class DaikinStreamerSwitch(DaikinEntity, SwitchEntity):
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the zone off."""
         await self.device.set_streamer("off")
+        await self.coordinator.async_refresh()
+
+
+class DaikinModeSwitch(DaikinEntity, SwitchEntity):
+    """An on/off mode of a BRP084 unit, such as Comfort."""
+
+    entity_description: DaikinModeSwitchEntityDescription
+    device: DaikinBRP084
+
+    def __init__(
+        self,
+        coordinator: DaikinCoordinator,
+        description: DaikinModeSwitchEntityDescription,
+    ) -> None:
+        """Initialize the switch."""
+        super().__init__(coordinator)
+        self.entity_description = description
+        self._attr_unique_id = f"{self.device.mac}-{description.key}"
+
+    @property
+    @override
+    def is_on(self) -> bool:
+        """Return whether the mode is on."""
+        return self.entity_description.is_on_fn(self.device)
+
+    @override
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        """Turn the mode on."""
+        await self.entity_description.set_fn(self.device, "on")
+        await self.coordinator.async_refresh()
+
+    @override
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        """Turn the mode off."""
+        await self.entity_description.set_fn(self.device, "off")
         await self.coordinator.async_refresh()
 
 

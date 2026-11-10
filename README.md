@@ -1,6 +1,6 @@
 # tuned-daikin
 
-Home Assistant's built-in Daikin integration from **2026.11.0**, with three changes for BRP084 Wi-Fi
+Home Assistant's built-in Daikin integration from **2026.11.0**, with four changes for BRP084 Wi-Fi
 adapters:
 
 1. **A pydaikin build with fixes meant for upstream.** It's upstream pydaikin 2.22.1 plus these changes
@@ -18,6 +18,9 @@ adapters:
      every two minutes for six hours.
    - Changing the setpoint, fan or swing of a BRP084 unit that's off is no longer silently dropped. It's
      written for the mode the unit runs in when it's turned back on, and the unit stays off.
+   - A BRP084 unit whose louvers only swing up and down shows swing as "Vertical" while it swings. Before,
+     it always showed "Off", because the unit has no side-to-side setting and reading it failed. This is
+     upstream pull request [#178](https://github.com/fredrike/pydaikin/pull/178).
    - Fixes for other adapter types: they retry a slow or cut-off reply too, a failed status update reports
      the real error, logs and errors leave out passwords and keys, BRP072C uses its own random uuid when
      none is given, and discovery returns the address it found and no longer sets the wrong HTTP port.
@@ -31,6 +34,11 @@ adapters:
    429 Too Many Requests from a struggling adapter leaves the unit "not ready yet", so Home Assistant keeps
    retrying. The built-in integration only does that for connection errors, so a 429 left the unit failed
    until it was reloaded.
+4. **Comfort, Econo and Powerful switches** (`custom_components/daikin/switch.py`). pydaikin can read and
+   set these modes on BRP084 adapters, but the built-in integration doesn't show them. Each one appears as
+   a switch on units that report it. The unit doesn't allow Powerful together with Comfort or Econo, so
+   turning one side on turns the other off, as the remote does. The unit also ends Powerful by itself
+   after about 20 minutes.
 
 ## Install (Marketplace)
 
@@ -57,9 +65,10 @@ Remove it in the Marketplace and restart. The built-in integration takes over ag
 ## Keeping in step with Home Assistant
 
 This is a copy of 2026.11.0's integration. Before upgrading Home Assistant, re-copy the integration from
-the new version and reapply the tuning and the setup change. 2026.11.0's built-in integration pins
-pydaikin 2.22.1; this one uses the 2.22.1-based build above. BRP084 adapters don't support
-2026.11's new demand-control action, so it reports "not supported" for them either way.
+the new version and reapply the tuning, the setup change and the mode switches. 2026.11.0's built-in
+integration pins pydaikin 2.22.1; this one uses the 2.22.1-based build above. BRP084 adapters don't
+support 2026.11's new demand-control action, so it reports "not supported" for them either way.
 
-Once a Home Assistant release includes a pydaikin with these fixes and the setup change, this no longer
-needs to replace the built-in integration. It can shrink to a separate add-on that only applies the tuning.
+Once a Home Assistant release includes a pydaikin with these fixes, the setup change and the mode
+switches, this no longer needs to replace the built-in integration. It can shrink to a separate add-on
+that only applies the tuning.

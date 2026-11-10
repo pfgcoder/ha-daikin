@@ -53,6 +53,15 @@
       }
     },
     "switch": {
+      "comfort": {
+        "name": "Comfort"
+      },
+      "econo": {
+        "name": "Econo"
+      },
+      "powerful": {
+        "name": "Powerful"
+      },
       "toggle": {
         "name": "Power"
       }
