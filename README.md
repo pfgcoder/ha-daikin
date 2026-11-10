@@ -23,6 +23,8 @@ adapters:
      upstream pull request [#178](https://github.com/fredrike/pydaikin/pull/178).
    - Turning Comfort on or off on a BRP084 unit works. Before, the unit ignored it, because it only acts
      on Comfort when the louver is set at the same time, as the remote does.
+   - A BRP084 unit with no side-to-side swing no longer offers "Horizontal" and "3D" swing modes, which
+     did nothing on it.
    - Fixes for other adapter types: they retry a slow or cut-off reply too, a failed status update reports
      the real error, logs and errors leave out passwords and keys, BRP072C uses its own random uuid when
      none is given, and discovery returns the address it found and no longer sets the wrong HTTP port.
@@ -36,15 +38,19 @@ adapters:
    429 Too Many Requests from a struggling adapter leaves the unit "not ready yet", so Home Assistant keeps
    retrying. The built-in integration only does that for connection errors, so a 429 left the unit failed
    until it was reloaded.
-4. **Comfort, Econo, Powerful and Swing switches** (`custom_components/daikin/switch.py`). pydaikin can read and
-   set these modes on BRP084 adapters, but the built-in integration doesn't show them. Each one appears as
-   a switch on units that report it. The unit doesn't allow Powerful together with Comfort or Econo, so
-   turning one side on turns the other off, as the remote does. The unit also ends Powerful by itself
-   after about 20 minutes. Like the remote, Comfort stops the swing and moves the louver to its comfort
-   position (down when heating, up when cooling), and turning it off leaves the louver in the middle.
-   A **Swing** switch does what the remote's swing button does: it starts or stops the up-and-down swing,
-   as the climate entity's swing mode does from a menu. Starting the swing ends Comfort, as on the remote.
-   HA shows that within one poll, about 2 minutes.
+4. **Comfort, Econo and Powerful on the climate card, plus switches** (`custom_components/daikin/climate.py`,
+   `switch.py`). pydaikin can read and set these modes on BRP084 adapters, but the built-in integration
+   doesn't show them.
+   - On the climate card, the swing menu offers Off, Swing and Comfort, since the unit allows only one of
+     them at a time. A unit that also swings side to side keeps its Vertical, Horizontal and 3D options.
+     The preset menu offers Eco (Econo) and Boost (Powerful).
+   - Each of Comfort, Econo, Powerful and the up-and-down swing also appears as a switch, on units that
+     report it. The Swing switch does what the remote's swing button does.
+   - As on the remote, the unit doesn't allow Powerful together with Comfort or Econo, so turning one side
+     on turns the other off. The unit also ends Powerful by itself after about 20 minutes.
+   - Comfort stops the swing and moves the louver to its comfort position (down when heating, up when
+     cooling), and turning it off leaves the louver in the middle. Starting the swing ends Comfort; the
+     Comfort switch shows that within one poll, about 2 minutes.
 
 ## Install (Marketplace)
 
@@ -71,10 +77,11 @@ Remove it in the Marketplace and restart. The built-in integration takes over ag
 ## Keeping in step with Home Assistant
 
 This is a copy of 2026.11.0's integration. Before upgrading Home Assistant, re-copy the integration from
-the new version and reapply the tuning, the setup change and the mode switches. 2026.11.0's built-in
-integration pins pydaikin 2.22.1; this one uses the 2.22.1-based build above. BRP084 adapters don't
-support 2026.11's new demand-control action, so it reports "not supported" for them either way.
+the new version and reapply the tuning, the setup change, the climate menus and the mode switches.
+2026.11.0's built-in integration pins pydaikin 2.22.1; this one uses the 2.22.1-based build above.
+BRP084 adapters don't support 2026.11's new demand-control action, so it reports "not supported" for
+them either way.
 
-Once a Home Assistant release includes a pydaikin with these fixes, the setup change and the mode
-switches, this no longer needs to replace the built-in integration. It can shrink to a separate add-on
-that only applies the tuning.
+Once a Home Assistant release includes a pydaikin with these fixes, the setup change, the climate menus
+and the mode switches, this no longer needs to replace the built-in integration. It can shrink to a
+separate add-on that only applies the tuning.

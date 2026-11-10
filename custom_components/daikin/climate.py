@@ -5,6 +5,7 @@ import logging
 from typing import Any, override
 
 from pydaikin.daikin_base import Appliance
+from pydaikin.daikin_brp084 import DaikinBRP084
 
 from homeassistant.components.climate import (
     ATTR_FAN_MODE,
@@ -161,7 +162,12 @@ async def async_setup_entry(
 ) -> None:
     """Set up Daikin climate based on config_entry."""
     coordinator = entry.runtime_data
-    entities: list[ClimateEntity] = [DaikinClimate(coordinator)]
+    climate_class = (
+        DaikinBRP084Climate
+        if isinstance(coordinator.device, DaikinBRP084)
+        else DaikinClimate
+    )
+    entities: list[ClimateEntity] = [climate_class(coordinator)]
     if _supports_zone_temperature_control(coordinator.device):
         zones = coordinator.device.zones or []
         entities.extend(
@@ -384,6 +390,104 @@ class DaikinClimate(DaikinEntity, ClimateEntity):
         await self.device.set(
             {HA_ATTR_TO_DAIKIN[ATTR_HVAC_MODE]: HA_STATE_TO_DAIKIN[HVACMode.OFF]}
         )
+        await self.coordinator.async_refresh()
+
+
+SWING_MODE_OFF = "Off"
+SWING_MODE_SWING = "Swing"
+SWING_MODE_COMFORT = "Comfort"
+
+
+class DaikinBRP084Climate(DaikinClimate):
+    """A Daikin HVAC on a BRP084 adapter.
+
+    Comfort is in the swing menu, as it's a louver position: the unit allows
+    only one of swinging, Comfort or neither. Econo and Powerful are presets.
+    On a unit that swings only up and down, "Vertical" is called "Swing".
+    """
+
+    device: DaikinBRP084
+
+    def __init__(self, coordinator: DaikinCoordinator) -> None:
+        """Initialize the climate device."""
+        super().__init__(coordinator)
+        modes = list(self.device.swing_modes)
+        self._vertical_only = "Horizontal" not in modes
+        if self._vertical_only:
+            modes = [SWING_MODE_OFF, SWING_MODE_SWING]
+        if self.device.support_comfort_mode:
+            modes.append(SWING_MODE_COMFORT)
+        self._attr_swing_modes = modes
+        self._list[ATTR_SWING_MODE] = modes
+
+        if self.device.support_econo_mode or self.device.support_powerful_mode:
+            self._attr_supported_features |= ClimateEntityFeature.PRESET_MODE
+
+    @property
+    @override
+    def swing_mode(self) -> str:
+        """Return the louver setting."""
+        f_dir = self.device.represent(HA_ATTR_TO_DAIKIN[ATTR_SWING_MODE])[1]
+        # Swinging wins: right after a swing command the adapter can still
+        # report Comfort on for a poll, although the unit has ended it.
+        if f_dir == "off" and self.device.comfort_mode == ATTR_STATE_ON:
+            return SWING_MODE_COMFORT
+        if f_dir == "vertical" and self._vertical_only:
+            return SWING_MODE_SWING
+        return f_dir.title()
+
+    @override
+    async def async_set_swing_mode(self, swing_mode: str) -> None:
+        """Set the louver: a swing mode, Comfort, or off."""
+        if swing_mode == SWING_MODE_COMFORT:
+            await self.device.set_comfort_mode(ATTR_STATE_ON)
+        elif swing_mode == SWING_MODE_OFF and self.swing_mode == SWING_MODE_COMFORT:
+            # Comfort off also moves the louver back to the middle.
+            await self.device.set_comfort_mode(ATTR_STATE_OFF)
+        elif swing_mode == SWING_MODE_SWING:
+            await self.device.set({HA_ATTR_TO_DAIKIN[ATTR_SWING_MODE]: "vertical"})
+        else:
+            await self.device.set(
+                {HA_ATTR_TO_DAIKIN[ATTR_SWING_MODE]: swing_mode.lower()}
+            )
+        await self.coordinator.async_refresh()
+
+    @property
+    @override
+    def preset_modes(self) -> list[str]:
+        """List of available preset modes."""
+        ret = [PRESET_NONE]
+        if self.device.support_econo_mode:
+            ret.append(PRESET_ECO)
+        if self.device.support_powerful_mode:
+            ret.append(PRESET_BOOST)
+        return ret
+
+    @property
+    @override
+    def preset_mode(self) -> str:
+        """Return the preset mode: Boost is Powerful, Eco is Econo."""
+        if self.device.powerful_mode == ATTR_STATE_ON:
+            return PRESET_BOOST
+        if self.device.econo_mode == ATTR_STATE_ON:
+            return PRESET_ECO
+        return PRESET_NONE
+
+    @override
+    async def async_set_preset_mode(self, preset_mode: str) -> None:
+        """Set the preset mode.
+
+        pydaikin turns the other one off, as the unit doesn't allow Econo and
+        Powerful together. Powerful also ends Comfort.
+        """
+        if preset_mode == PRESET_BOOST:
+            await self.device.set_powerful_mode(ATTR_STATE_ON)
+        elif preset_mode == PRESET_ECO:
+            await self.device.set_econo_mode(ATTR_STATE_ON)
+        elif self.device.powerful_mode == ATTR_STATE_ON:
+            await self.device.set_powerful_mode(ATTR_STATE_OFF)
+        elif self.device.econo_mode == ATTR_STATE_ON:
+            await self.device.set_econo_mode(ATTR_STATE_OFF)
         await self.coordinator.async_refresh()
 
 
