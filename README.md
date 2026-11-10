@@ -25,6 +25,8 @@ adapters:
      on Comfort when the louver is set at the same time, as the remote does.
    - A BRP084 unit with no side-to-side swing no longer offers "Horizontal" and "3D" swing modes, which
      did nothing on it.
+   - pydaikin reads whether a BRP084 indoor unit is itself calling for heat or cooling, which the climate
+     card uses (see 4).
    - Fixes for other adapter types: they retry a slow or cut-off reply too, a failed status update reports
      the real error, logs and errors leave out passwords and keys, BRP072C uses its own random uuid when
      none is given, and discovery returns the address it found and no longer sets the wrong HTTP port.
@@ -44,6 +46,9 @@ adapters:
    - On the climate card, the swing menu offers Off, Swing and Comfort, since the unit allows only one of
      them at a time. A unit that also swings side to side keeps its Vertical, Horizontal and 3D options.
      The preset menu offers Eco (Econo) and Boost (Powerful).
+   - The card's Heating, Cooling or Idle comes from the indoor unit itself. The built-in integration uses
+     the compressor, which belongs to the outdoor unit, so on a multi-split every indoor unit on it showed
+     "Heating" while any one of them still needed heat.
    - Each of Comfort, Econo, Powerful and the up-and-down swing also appears as a switch, on units that
      report it. The Swing switch does what the remote's swing button does.
    - As on the remote, the unit doesn't allow Powerful together with Comfort or Econo, so turning one side

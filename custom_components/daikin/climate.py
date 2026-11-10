@@ -425,6 +425,24 @@ class DaikinBRP084Climate(DaikinClimate):
 
     @property
     @override
+    def hvac_action(self) -> HVACAction | None:
+        """Return whether this unit is heating, cooling or idle.
+
+        It uses the indoor unit's own thermostat flag. The compressor that
+        the base class checks belongs to the outdoor unit, so on a multi-split
+        it keeps running, and every indoor unit on it showed "Heating", while
+        any one of them still needed heat.
+        """
+        thermostat_on = self.device.thermostat_on
+        if thermostat_on is None:
+            return super().hvac_action
+        action = HA_STATE_TO_CURRENT_HVAC.get(self.hvac_mode)
+        if action in (HVACAction.COOLING, HVACAction.HEATING) and not thermostat_on:
+            return HVACAction.IDLE
+        return action
+
+    @property
+    @override
     def swing_mode(self) -> str:
         """Return the louver setting."""
         f_dir = self.device.represent(HA_ATTR_TO_DAIKIN[ATTR_SWING_MODE])[1]
