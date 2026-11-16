@@ -12,6 +12,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .const import DOMAIN, TIMEOUT_SEC
+from .tuning import describe_error
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -42,5 +43,5 @@ class DaikinCoordinator(DataUpdateCoordinator[None]):
             raise UpdateFailed(
                 translation_domain=DOMAIN,
                 translation_key="error_communicating",
-                translation_placeholders={"error": str(err)},
+                translation_placeholders={"error": describe_error(err)},
             ) from err

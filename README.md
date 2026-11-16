@@ -35,11 +35,14 @@ adapters:
    gets 10 seconds. After a failure it waits 2, 4, 8 and then 16 seconds before trying again, so a
    struggling adapter isn't flooded with requests. No new attempt starts after 100 seconds, so a request
    gives up within 110. The first retry of each request is logged as a warning ("Retrying request to ..."),
-   so the log shows how often retries happen.
+   so the log shows how often retries happen. When a connection fails, that warning and the failed-update
+   error add the system's reason, which aiohttp's "Connect call failed" leaves out: for example
+   "ECONNREFUSED: Connection refused" (something at the address turned the connection down) or
+   "EHOSTUNREACH: No route to host" (nothing answered there).
 3. **Setup retries after any HTTP error** (`custom_components/daikin/__init__.py`). An error such as
    429 Too Many Requests from a struggling adapter leaves the unit "not ready yet", so Home Assistant keeps
    retrying. The built-in integration only does that for connection errors, so a 429 left the unit failed
-   until it was reloaded.
+   until it was reloaded. The integration page also shows why setup failed; the built-in one leaves it blank.
 4. **Comfort, Econo and Powerful on the climate card, plus switches** (`custom_components/daikin/climate.py`,
    `switch.py`). pydaikin can read and set these modes on BRP084 adapters, but the built-in integration
    doesn't show them.

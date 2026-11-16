@@ -8,7 +8,9 @@ request gives up within 110s. A request's first retry is logged as a warning,
 so the log shows how often retries happen.
 """
 
+import errno
 import logging
+import os
 
 from aiohttp import ClientTimeout
 from pydaikin.daikin_brp084 import DaikinBRP084
@@ -18,6 +20,28 @@ _LOGGER = logging.getLogger(__name__)
 
 HTTP_TIMEOUT = ClientTimeout(total=10)
 RETRY_SECONDS = 100
+
+
+def describe_error(err: BaseException) -> str:
+    """Describe a request error for the log, with the system's reason for it.
+
+    aiohttp's "Cannot connect" message says which call failed but not why. The
+    reason is only on the exception, or on the one pydaikin wrapped: "Connection
+    refused" means something at the address turned the connection down, and
+    "No route to host" means nothing answered there. Add it when the message
+    doesn't already give it.
+    """
+    text = str(err) or type(err).__name__
+    cause: BaseException | None = err
+    while cause is not None:
+        if isinstance(cause, OSError) and cause.errno:
+            reason = os.strerror(cause.errno)
+            if reason not in text:
+                name = errno.errorcode.get(cause.errno, str(cause.errno))
+                text = f"{text} ({name}: {reason})"
+            break
+        cause = cause.__cause__
+    return text
 
 
 def _log_retry(retry_state: RetryCallState) -> None:
@@ -33,7 +57,7 @@ def _log_retry(retry_state: RetryCallState) -> None:
         "Retrying request to %s in %.0fs after %s",
         device.device_ip,
         retry_state.next_action.sleep,
-        str(error) or type(error).__name__,
+        describe_error(error),
     )
 
 

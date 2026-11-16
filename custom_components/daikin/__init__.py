@@ -30,7 +30,7 @@ from homeassistant.util.ssl import client_context_no_verify
 from .const import DOMAIN, KEY_MAC, TIMEOUT_SEC
 from .coordinator import DaikinConfigEntry, DaikinCoordinator
 from .services import async_setup_services
-from .tuning import apply_brp084_tuning
+from .tuning import apply_brp084_tuning, describe_error
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -70,19 +70,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: DaikinConfigEntry) -> No
         _LOGGER.debug("Connection to %s successful", host)
     except TimeoutError as err:
         _LOGGER.debug("Connection to %s timed out in %s seconds", host, TIMEOUT_SEC)
-        raise ConfigEntryNotReady from err
+        raise _not_ready(err) from err
     except ClientError as err:
         # Any HTTP error during setup, such as 429 Too Many Requests from a
         # struggling adapter, is temporary, so let Home Assistant retry.
         _LOGGER.debug("ClientError from %s: %s", host, err)
-        raise ConfigEntryNotReady from err
+        raise _not_ready(err) from err
     except DaikinException as err:
         # pydaikin has no subclass hierarchy for transient vs permanent errors.
         # DaikinException during factory/init almost always means the device is not
         # yet ready (e.g. "Empty values." when the unit hasn't finished booting),
         # so treat all factory-time DaikinExceptions as transient.
         _LOGGER.debug("DaikinException from %s: %s", host, err)
-        raise ConfigEntryNotReady from err
+        raise _not_ready(err) from err
 
     coordinator = DaikinCoordinator(hass, entry, device)
 
@@ -92,6 +92,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: DaikinConfigEntry) -> No
 
     entry.runtime_data = coordinator
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+
+def _not_ready(err: Exception) -> ConfigEntryNotReady:
+    """Say why setup failed. Home Assistant shows it on the integration page."""
+    return ConfigEntryNotReady(
+        translation_domain=DOMAIN,
+        translation_key="error_communicating",
+        translation_placeholders={"error": describe_error(err)},
+    )
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: DaikinConfigEntry) -> None:
