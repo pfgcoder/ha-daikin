@@ -1,5 +1,10 @@
 {
   "entity": {
+    "event": {
+      "connection_error": {
+        "default": "mdi:lan-disconnect"
+      }
+    },
     "sensor": {
       "compressor_frequency": {
         "default": "mdi:fan"

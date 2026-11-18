@@ -5,9 +5,11 @@ silent for a minute or more while staying on Wi-Fi, so keep trying for about
 100s instead: 10s per attempt, backing off 2, 4, 8 then 16s after each failure
 so a struggling adapter isn't flooded. No attempt starts after 100s, so a
 request gives up within 110s. A request's first retry is logged as a warning,
-so the log shows how often retries happen.
+so the log shows how often retries happen. It's also passed to the unit's
+listener, which keeps it in history.
 """
 
+from collections.abc import Callable
 import errno
 import logging
 import os
@@ -21,15 +23,22 @@ _LOGGER = logging.getLogger(__name__)
 HTTP_TIMEOUT = ClientTimeout(total=10)
 RETRY_SECONDS = 100
 
+# What error_kind sorts a request error into.
+ERROR_KINDS = ("unreachable", "refused", "timeout", "other")
+
+type ErrorListener = Callable[[BaseException], None]
+
+_error_listeners: dict[DaikinBRP084, ErrorListener] = {}
+
 
 def describe_error(err: BaseException) -> str:
     """Describe a request error for the log, with the system's reason for it.
 
     aiohttp's "Cannot connect" message says which call failed but not why. The
-    reason is only on the exception, or on the one pydaikin wrapped: "Connection
-    refused" means something at the address turned the connection down, and
-    "No route to host" means nothing answered there. Add it when the message
-    doesn't already give it.
+    reason is only on the exception, or on the one pydaikin wrapped. "Connection
+    refused" means the adapter answered and turned the connection down. "Host
+    is unreachable" means nothing answered at that address. Add the reason when
+    the message doesn't already give it.
     """
     text = str(err) or type(err).__name__
     cause: BaseException | None = err
@@ -44,21 +53,58 @@ def describe_error(err: BaseException) -> str:
     return text
 
 
+def error_kind(err: BaseException) -> str:
+    """Sort a request error into one of ERROR_KINDS.
+
+    "unreachable" means nothing answered at the adapter's address, "refused"
+    that the adapter answered and turned the connection down, and "timeout"
+    that it didn't reply in time.
+    """
+    # TimeoutError is an OSError too, so check it first.
+    if isinstance(err, TimeoutError):
+        return "timeout"
+    if isinstance(err, OSError):
+        if err.errno == errno.EHOSTUNREACH:
+            return "unreachable"
+        if err.errno == errno.ECONNREFUSED:
+            return "refused"
+    return "other"
+
+
+def listen_for_errors(
+    device: DaikinBRP084, listener: ErrorListener
+) -> Callable[[], None]:
+    """Call listener with each request error that is logged as a warning.
+
+    Return a function that stops it.
+    """
+    _error_listeners[device] = listener
+
+    def stop() -> None:
+        _error_listeners.pop(device, None)
+
+    return stop
+
+
 def _log_retry(retry_state: RetryCallState) -> None:
     """Log a request's first retry as a warning, naming the device.
 
     Later retries of the same request are logged at debug, so an adapter that
-    is down for hours doesn't flood the log.
+    is down for hours doesn't flood the log. The first one is also passed to
+    the device's listener.
     """
     device = retry_state.args[0]
     error = retry_state.outcome.exception()
+    first = retry_state.attempt_number == 1
     _LOGGER.log(
-        logging.WARNING if retry_state.attempt_number == 1 else logging.DEBUG,
+        logging.WARNING if first else logging.DEBUG,
         "Retrying request to %s in %.0fs after %s",
         device.device_ip,
         retry_state.next_action.sleep,
         describe_error(error),
     )
+    if first and (listener := _error_listeners.get(device)):
+        listener(error)
 
 
 def apply_brp084_tuning() -> None:

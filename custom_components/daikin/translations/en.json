@@ -23,6 +23,24 @@
     }
   },
   "entity": {
+    "event": {
+      "connection_error": {
+        "name": "Connection error",
+        "state_attributes": {
+          "error": {
+            "name": "Error"
+          },
+          "event_type": {
+            "state": {
+              "other": "Other",
+              "refused": "Refused",
+              "timeout": "Timed out",
+              "unreachable": "Unreachable"
+            }
+          }
+        }
+      }
+    },
     "sensor": {
       "compressor_energy_consumption": {
         "name": "Compressor energy consumption (today)"

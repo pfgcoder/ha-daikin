@@ -36,9 +36,12 @@ adapters:
    struggling adapter isn't flooded with requests. No new attempt starts after 100 seconds, so a request
    gives up within 110. The first retry of each request is logged as a warning ("Retrying request to ..."),
    so the log shows how often retries happen. When a connection fails, that warning and the failed-update
-   error add the system's reason, which aiohttp's "Connect call failed" leaves out: for example
-   "ECONNREFUSED: Connection refused" (something at the address turned the connection down) or
-   "EHOSTUNREACH: No route to host" (nothing answered there).
+   error also give the system's reason, which aiohttp's "Connect call failed" leaves out.
+   "ECONNREFUSED: Connection refused" means the adapter answered and turned the connection down.
+   "EHOSTUNREACH: Host is unreachable" means nothing answered at that address.
+   Each unit also has a Connection error entity, under its diagnostics (`event.py`). It records the same
+   errors as that warning, sorted into Unreachable, Refused, Timed out or Other, with the full message.
+   Unlike the log, its history survives restarts and updates.
 3. **Setup retries after any HTTP error** (`custom_components/daikin/__init__.py`). An error such as
    429 Too Many Requests from a struggling adapter leaves the unit "not ready yet", so Home Assistant keeps
    retrying. The built-in integration only does that for connection errors, so a 429 left the unit failed
@@ -92,7 +95,8 @@ Remove it in the Marketplace and restart. The built-in integration takes over ag
 ## Keeping in step with Home Assistant
 
 This is a copy of 2026.11.0's integration. Before upgrading Home Assistant, re-copy the integration from
-the new version and reapply the tuning, the setup change, the climate menus and the mode switches.
+the new version and reapply the tuning (with the connection error entity), the setup change, the climate
+menus and the mode switches.
 2026.11.0's built-in integration pins pydaikin 2.22.1; this one uses the 2.22.1-based build above.
 BRP084 adapters don't support 2026.11's new demand-control action, so it reports "not supported" for
 them either way.
